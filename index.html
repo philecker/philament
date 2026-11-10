@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'">
+    <title>Philament</title>
+    <link rel="stylesheet" href="styles.css?v=0.1.0">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./vendor/three/three.module.js",
+                "three/addons/": "./vendor/three/addons/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="window-controls">
+                <button class="window-btn minimize-btn" onclick="minimizeWindow()" title="Minimize" aria-label="Minimize">
+                    <svg width="10" height="10" viewBox="0 0 12 12">
+                        <line x1="0" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </button>
+                <button class="window-btn maximize-btn" onclick="maximizeWindow()" title="Maximize" aria-label="Maximize">
+                    <svg width="10" height="10" viewBox="0 0 12 12">
+                        <rect x="1" y="1" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </button>
+                <button class="window-btn close-btn" onclick="closeWindow()" title="Close" aria-label="Close">
+                    <svg width="10" height="10" viewBox="0 0 12 12">
+                        <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1"/>
+                        <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="view-switch" id="view-switch" role="tablist" aria-label="View">
+                <button role="tab" data-view="library" class="active">Library</button>
+                <button role="tab" data-view="makerworld">Uploads <span class="view-count mw-badge hidden" id="mw-badge" title="New comments"></span></button>
+                <button role="tab" data-view="saved">Saved <span class="view-count" id="saved-count-badge">0</span></button>
+            </div>
+            <div class="header-right">
+            <button class="window-btn header-settings-btn" onclick="openSettingsModal()" title="Settings" aria-label="Settings">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <div class="logo" onclick="openSettingsModal()" title="Settings">
+                <h1>Philament</h1>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <!-- Filament spool -->
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="7.2" fill="currentColor" fill-opacity="0.3" stroke-width="1.4"/>
+                    <circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>
+                    <circle cx="12" cy="12" r="1.4" fill="#0f172a" fill-opacity="0.55" stroke="none"/>
+                </svg>
+            </div>
+            </div>
+        </div>
+
+        <!-- Update banner (update-ui.js) -->
+        <div class="update-banner hidden" id="update-banner" role="status" aria-live="polite">
+            <div class="update-banner-main">
+                <span class="update-banner-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg>
+                </span>
+                <div class="update-banner-text">
+                    <div class="update-banner-title" id="update-title"></div>
+                    <div class="update-banner-detail" id="update-detail"></div>
+                    <div class="update-progress hidden" id="update-progress"><div class="update-progress-bar" id="update-progress-bar"></div></div>
+                </div>
+                <div class="update-banner-actions" id="update-actions"></div>
+            </div>
+            <div class="update-notes hidden" id="update-notes">
+                <div class="update-notes-body" id="update-notes-body"></div>
+                <div class="update-notes-footer">
+                    <button class="link-btn" type="button" id="update-skip">Skip this version</button>
+                    <button class="link-btn" type="button" id="update-github">View on GitHub</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workspace: Library | Preview | Tools -->
+        <div class="workspace">
+            <!-- Library -->
+            <section class="pane library-pane" id="models-section">
+                <div class="section-header pane-header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <h2>Models</h2>
+                    <span class="models-count" id="models-count"></span>
+                    <button class="models-chip" id="models-slicer-btn">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <span id="models-slicer-name">Set Slicer</span>
+                    </button>
+                </div>
+
+                <!-- Empty state -->
+                <div class="models-empty" id="models-empty">
+                    <div class="models-empty-title">Preview your STL and 3MF files</div>
+                    <div class="models-empty-desc">Add the folder where you keep models and slices, or drop it here.</div>
+                    <button class="models-primary-btn" id="models-empty-add">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                        Add Folder
+                    </button>
+                </div>
+
+                <div class="models-body library-body hidden" id="models-body">
+                    <!-- Toolbar -->
+                    <div class="models-toolbar">
+                        <input type="search" id="models-search" class="models-search" placeholder="Search" aria-label="Search">
+                    </div>
+
+                    <div class="models-folders-row">
+                        <button class="models-hidden-btn hidden" id="models-hidden-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            <span id="models-hidden-label">0 hidden</span>
+                        </button>
+                        <span class="models-folders-spacer"></span>
+                        <button class="models-icon-btn" id="models-refresh-btn" title="Rescan folders">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        </button>
+                        <button class="models-icon-btn" id="models-add-btn" title="Add folder">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="models-list" id="models-list" tabindex="0" aria-label="Model files"></div>
+                </div>
+            </section>
+
+            <!-- Preview and tools -->
+            <div class="main-column">
+            <!-- Preview -->
+            <section class="pane preview-pane" aria-label="Model preview">
+                <div class="models-preview hidden" id="models-preview">
+                    <div class="models-stage">
+                        <canvas id="models-canvas"></canvas>
+                        <img id="models-thumb" class="hidden" alt="">
+                        <div class="models-stage-msg hidden" id="models-stage-msg"></div>
+                        <div class="models-view-badge hidden" id="models-view-badge"></div>
+                        <button class="models-close-preview" id="models-close-preview" title="Close preview">×</button>
+                    </div>
+                    <div class="models-preview-info">
+                        <div class="models-preview-name" id="models-preview-name"></div>
+                        <div class="models-preview-meta" id="models-preview-meta"></div>
+                    </div>
+                    <div class="models-actions">
+                        <button class="models-primary-btn" id="models-open-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            <span id="models-open-label">Open in Slicer</span>
+                        </button>
+                        <button class="models-secondary-btn" id="models-reveal-btn">
+                            <span id="models-reveal-label">Show in Finder</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="preview-placeholder">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    <div class="preview-placeholder-title">Select a model to preview it</div>
+                    <div class="preview-placeholder-desc">Drag to rotate · scroll to zoom · double-click a file to open it in your slicer</div>
+                </div>
+            </section>
+
+            <!-- Tools -->
+            <aside class="tools-pane" aria-label="Tools">
+                <!-- Unit Converter -->
+                <div class="section converter-section" data-collapse="converter">
+                    <div class="section-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="17 1 21 5 17 9"/>
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                            <polyline points="7 23 3 19 7 15"/>
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                        </svg>
+                        <h2>Unit Converter</h2>
+                        <svg class="section-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="section-body">
+
+                    <!-- Converter Mode Selector -->
+                    <div class="converter-tabs">
+                        <button class="tab-btn active" id="mode-mm-btn" onclick="setConverterMode('mm')">mm ↔ in</button>
+                        <button class="tab-btn" id="mode-sae-btn" onclick="setConverterMode('sae')">fraction ↔ decimal</button>
+                    </div>
+
+                    <!-- mm/in Converter -->
+                    <div class="converter-content" id="mm-converter">
+                        <div class="converter-container">
+                            <div class="converter-io">
+                                <div class="input-wrapper">
+                                    <label class="converter-label" id="input-label">millimeters</label>
+                                    <input type="number" id="input-value" step="any" placeholder="0.0" oninput="convert()">
+                                </div>
+                                <div class="equals">=</div>
+                                <div class="output-column">
+                                    <label class="converter-label" id="output-label">inches</label>
+                                    <div class="output-wrapper" onclick="copyToClipboard()" title="Click to copy">
+                                        <div class="output-value" id="output-value">0.0000</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="direction-toggle-wrapper">
+                                <div class="toggle-container">
+                                    <span class="toggle-label active" id="toggle-label-left">millimeters</span>
+                                    <label class="toggle toggle-wide">
+                                        <input type="checkbox" id="direction-toggle" onchange="toggleDirection()">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span class="toggle-label" id="toggle-label-right">inches</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SAE/Decimal Converter -->
+                    <div class="converter-content hidden" id="sae-converter">
+                        <div class="converter-container">
+                            <div class="converter-io">
+                                <div class="input-wrapper">
+                                    <label class="converter-label" id="sae-input-label">fraction</label>
+                                    <input type="text" id="sae-input-value" placeholder="1/4" oninput="convertSAE()">
+                                </div>
+                                <div class="equals">=</div>
+                                <div class="output-column">
+                                    <label class="converter-label" id="sae-output-label">decimal</label>
+                                    <div class="output-wrapper" onclick="copySAEToClipboard()" title="Click to copy">
+                                        <div class="output-value" id="sae-output-value">0.0000</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="direction-toggle-wrapper">
+                                <div class="toggle-container">
+                                    <span class="toggle-label active" id="sae-toggle-label-left">fraction</span>
+                                    <label class="toggle toggle-wide">
+                                        <input type="checkbox" id="sae-direction-toggle" onchange="toggleSAEDirection()">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span class="toggle-label" id="sae-toggle-label-right">decimal</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <!-- Filament -->
+                <div class="section filament-section" data-collapse="filament">
+                    <div class="section-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <h2>Filament</h2>
+                        <button class="edit-btn" onclick="openFilamentModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Edit
+                        </button>
+                        <svg class="section-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="section-body">
+
+                    <div class="filament-selector">
+                        <select id="filament-select" onchange="updateFilamentInfo()"></select>
+                    </div>
+
+                    <div class="filament-info" id="filament-info">
+                        <div class="inventory-section" id="inventory-section">
+                            <div class="inventory-header">
+                                <span class="inventory-title">📦 Inventory</span>
+                                <span class="inventory-total" id="inventory-total">0 spools</span>
+                                <button class="inventory-buy hidden" id="inventory-buy" title="Open buy link">Buy
+                                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2h6v6M10 2 2 10"/></svg>
+                                </button>
+                            </div>
+                            <div class="inventory-list" id="inventory-list">
+                                <div class="inventory-empty">No inventory tracked</div>
+                            </div>
+                        </div>
+                        <div class="temp-row">
+                            <div class="temp-item">
+                                <span class="temp-icon">🌡️</span>
+                                <div>
+                                    <div class="temp-label">Nozzle Temperature</div>
+                                    <div class="temp-value" id="nozzle-temp">190-220°C</div>
+                                </div>
+                            </div>
+                            <div class="temp-item">
+                                <span class="temp-icon">🔥</span>
+                                <div>
+                                    <div class="temp-label">Bed Temperature</div>
+                                    <div class="temp-value" id="bed-temp">20-60°C</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="temp-row">
+                            <div class="temp-item temp-item-full">
+                                <span class="temp-icon">💨</span>
+                                <div>
+                                    <div class="temp-label">Drying Temperature / Time</div>
+                                    <div class="temp-value" id="drying-info">50°C / 4h</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </aside>
+            </div>
+
+            <!-- Saved tab -->
+            <section class="pane saved-pane hidden" id="saved-pane" aria-label="Saved models">
+                <div class="saved-top">
+                    <div class="saved-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                        <h2>Saved Models</h2>
+                        <span class="saved-total" id="saved-total"></span>
+                    </div>
+                    <form class="saved-add" id="saved-add" autocomplete="off" novalidate>
+                        <input type="text" inputmode="url" spellcheck="false" id="saved-url" placeholder="Paste a link from MakerWorld, Printables, Thingiverse or any other site…" aria-label="Link to save">
+                        <button type="submit" id="saved-add-btn">Save</button>
+                    </form>
+                </div>
+                <div class="saved-filters" id="saved-filters">
+                    <div class="saved-sites" id="saved-sites"></div>
+                    <input type="search" class="saved-search" id="saved-search" placeholder="Search saved">
+                </div>
+                <div class="saved-tags hidden" id="saved-tags">
+                    <span class="saved-tags-label">Tags</span>
+                    <div class="saved-tags-list" id="saved-tags-list"></div>
+                </div>
+                <datalist id="saved-tag-options"></datalist>
+                <div class="saved-body" id="saved-body">
+                    <div class="saved-grid" id="saved-grid"></div>
+                    <div class="saved-empty hidden" id="saved-empty">
+                        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                        <div class="saved-empty-title">Save models from any 3D printing site</div>
+                        <div class="saved-empty-desc">Paste a link above, drag one in from your browser, or press ⌘V here.<br>MakerWorld, Printables, Thingiverse, Cults, Thangs, MyMiniFactory and more all work.</div>
+                    </div>
+                </div>
+                <div class="saved-toast hidden" id="saved-toast" role="status"></div>
+                <div class="saved-drop hidden" id="saved-drop">Drop to save this link</div>
+            </section>
+
+            <!-- Uploads tab (makerworld-ui.js) -->
+            <section id="mw-pane" class="pane mw-pane hidden" aria-label="Your MakerWorld uploads">
+                <div class="mw-connect hidden" id="mw-connect">
+                    <div class="mw-connect-card">
+                        <div class="mw-connect-icon" aria-hidden="true">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        </div>
+                        <h2>Track your MakerWorld uploads</h2>
+                        <p>See downloads, prints, likes and new comments for everything you’ve published, all in one place.</p>
+                        <form class="mw-connect-form" id="mw-connect-form" novalidate>
+                            <label class="converter-label" for="mw-handle">Your MakerWorld username</label>
+                            <div class="mw-connect-row">
+                                <input type="text" id="mw-handle" placeholder="@username or profile link" autocomplete="off" spellcheck="false">
+                                <button type="submit" class="btn-primary" id="mw-connect-btn">Connect</button>
+                            </div>
+                            <div class="mw-connect-error hidden" id="mw-connect-error" role="alert"></div>
+                        </form>
+                        <p class="mw-fine">No sign-in needed: Philament reads your public profile, the same information anyone can see on makerworld.com. MakerWorld has no official API, so this could stop working if MakerWorld changes. Editing models always happens on makerworld.com.</p>
+                    </div>
+                </div>
+
+                <div class="mw-main hidden" id="mw-main">
+                    <div class="mw-list-pane">
+                        <div class="mw-account" id="mw-account"></div>
+                        <div class="mw-stats" id="mw-stats"></div>
+                        <div class="mw-toolbar">
+                            <h3>My Uploads</h3>
+                            <div class="mw-filters" id="mw-filters"></div>
+                            <div class="mw-spacer"></div>
+                            <input type="search" class="mw-search" id="mw-search" placeholder="Search uploads" aria-label="Search uploads">
+                            <select class="mw-sort" id="mw-sort" aria-label="Sort uploads">
+                                <option value="downloads">Most downloaded</option>
+                                <option value="prints">Most printed</option>
+                                <option value="likes">Most liked</option>
+                                <option value="trending">Trending this week</option>
+                                <option value="newest">Newest</option>
+                                <option value="title">Title A–Z</option>
+                            </select>
+                        </div>
+                        <div class="mw-head" aria-hidden="true">
+                            <div></div><div>Model</div><div>Downloads<span class="mw-col-total" id="mw-total-downloads"></span></div><div>Prints<span class="mw-col-total" id="mw-total-prints"></span></div><div>Likes<span class="mw-col-total" id="mw-total-likes"></span></div><div>Comments<span class="mw-col-total" id="mw-total-comments"></span></div><div>Last 14 days</div>
+                        </div>
+                        <div class="mw-list" id="mw-list" role="listbox" aria-label="Your uploads" tabindex="0"></div>
+                        <div class="mw-empty hidden" id="mw-empty"></div>
+                    </div>
+                    <aside class="mw-detail" id="mw-detail" aria-label="Model details"></aside>
+                </div>
+            </section>
+
+        </div>
+
+        <footer class="app-footer status-bar" id="app-version"></footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="close-modal-btn" onclick="closeSettingsModal()">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4 class="settings-section-title">Appearance</h4>
+                    <p class="settings-description">Choose the app color, how bright it is, and the text size.</p>
+                    <div class="settings-subtitle">App Color</div>
+                    <div class="accent-picker" id="accent-picker" role="radiogroup" aria-label="App color"></div>
+                    <div class="setting-slider">
+                        <div class="slider-head">
+                            <label for="accent-brightness-slider" class="slider-label">Color brightness</label>
+                            <span class="slider-value" id="accent-brightness-display">100%</span>
+                        </div>
+                        <div class="slider-row">
+                            <svg class="slider-end" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="4"/></svg>
+                            <input type="range" id="accent-brightness-slider" min="50" max="100" value="100" step="5"
+                                   oninput="previewAccentBrightness(this.value)" onchange="setAccentBrightness(this.value)">
+                            <svg class="slider-end" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                        </div>
+                    </div>
+                    <div class="settings-subtitle settings-subtitle-divided">Font Size</div>
+                    <div class="font-size-control">
+                        <div class="setting-slider">
+                            <div class="slider-head">
+                                <label for="font-size-slider" class="slider-label">Text size</label>
+                                <span class="slider-value" id="font-size-display">100%</span>
+                            </div>
+                            <div class="slider-row">
+                                <span class="slider-end slider-end-text small" aria-hidden="true">A</span>
+                                <input type="range" id="font-size-slider" min="100" max="150" value="100" step="5" oninput="updateFontSize(this.value)" onchange="setFontSize(this.value)">
+                                <span class="slider-end slider-end-text large" aria-hidden="true">A</span>
+                            </div>
+                        </div>
+                        <div class="font-size-presets">
+                            <button onclick="setFontSize(100)" class="font-preset-btn" data-size="100">Small</button>
+                            <button onclick="setFontSize(110)" class="font-preset-btn" data-size="110">Medium</button>
+                            <button onclick="setFontSize(125)" class="font-preset-btn" data-size="125">Large</button>
+                            <button onclick="setFontSize(150)" class="font-preset-btn" data-size="150">Extra Large</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4 class="settings-section-title">Slicer</h4>
+                    <p class="settings-description">The app your models and slices open in.</p>
+                    <div class="settings-row">
+                        <svg class="settings-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <span class="settings-row-label" id="settings-slicer-name">Not set</span>
+                        <button class="settings-small-btn" onclick="window.chooseSlicer && window.chooseSlicer()">Change…</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4 class="settings-section-title">MakerWorld</h4>
+                    <div class="settings-row">
+                        <svg class="settings-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        <div class="settings-row-text">
+                            <span class="settings-row-label" id="mw-settings-label">Not connected</span>
+                            <span class="settings-row-sub" id="mw-settings-sub">Show your MakerWorld uploads and their stats in the Uploads tab</span>
+                        </div>
+                        <button class="settings-small-btn" id="mw-settings-btn" type="button">Connect</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4 class="settings-section-title">Updates</h4>
+                    <p class="settings-description">New versions are published on GitHub. Philament can let you know and download them for you.</p>
+                    <div class="settings-row">
+                        <svg class="settings-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        <div class="settings-row-text">
+                            <span class="settings-row-label" id="update-settings-version">Philament</span>
+                            <span class="settings-row-sub" id="update-settings-status">Not checked yet</span>
+                        </div>
+                        <button class="settings-small-btn" id="update-check-btn" type="button">Check Now</button>
+                    </div>
+                    <label class="settings-check">
+                        <input type="checkbox" id="update-auto">
+                        <span>Check for updates automatically</span>
+                    </label>
+                </div>
+
+                <div class="settings-section">
+                    <h4 class="settings-section-title">Backup & Restore</h4>
+                    <p class="settings-description">Save your filaments, inventory, model folders and settings to iCloud Drive, or restore them.</p>
+                    <div class="settings-actions">
+                        <button onclick="exportBackup()" class="settings-action-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Export Backup
+                        </button>
+                        <button onclick="importBackup()" class="settings-action-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Import Backup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filament Editor Modal -->
+    <div id="filament-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manage Filaments</h3>
+                <button class="close-modal-btn" onclick="closeFilamentModal()">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div id="filament-list" class="filament-edit-list"></div>
+                
+                <button class="add-filament-btn" id="add-filament-btn" onclick="addNewFilament()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v8M8 12h8"/>
+                    </svg>
+                    Add Filament
+                </button>
+                <div id="filament-type-picker" class="type-picker hidden"></div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeFilamentModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveFilaments()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js?v=0.1.0"></script>
+    <script src="saved.js?v=0.1.0"></script>
+    <script src="update-ui.js?v=0.1.0"></script>
+    <script src="makerworld-ui.js?v=0.1.0"></script>
+    <script type="module" src="models.js?v=0.1.0"></script>
+</body>
+</html>

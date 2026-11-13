@@ -34,6 +34,7 @@ const state = {
     expanded: new Set(), // folders shown open in the tree
     showHidden: false,
     cursor: null, // keyboard position: 'f:<path>' or 'd:<path>'
+    dragging: null, // file being dragged to another folder
 };
 state.hidden = new Set(loadJSON(HIDDEN_KEY, []));
 state.expanded = new Set(loadJSON(EXPANDED_KEY, null) || state.folders);
@@ -67,8 +68,10 @@ function prettyFolder(p) {
     const home = os.homedir();
     return p.startsWith(home) ? '~' + p.slice(home.length) : p;
 }
+const ON_MAC = process.platform === 'darwin';
+const TRASH = ON_MAC ? 'Trash' : 'Recycle Bin';
 function revealLabel() {
-    return process.platform === 'darwin' ? 'Show in Finder' : 'Show in Folder';
+    return ON_MAC ? 'Show in Finder' : 'Show in Explorer';
 }
 
 // Folder scanning
@@ -514,7 +517,7 @@ async function selectFile(file) {
         // 3D when it can be drawn, otherwise the file's picture
         const mode = drawn ? '3d' : thumbnailUrl ? 'image' : null;
         let message = 'No preview available for this file.';
-        if (result.geometry && !drawn) message = '3D preview isn’t available on this Mac. Graphics acceleration may be turned off.';
+        if (result.geometry && !drawn) message = `3D preview isn’t available on this ${ON_MAC ? 'Mac' : 'computer'}. Graphics acceleration may be turned off.`;
         else if (file.kind === 'f3d') message = 'Fusion design. Open it in Fusion to see the model.';
         setStage(mode, mode ? null : message);
         if (mode === '3d') sizeViewer();
@@ -567,23 +570,127 @@ async function trashFile(file) {
     const win = remote.getCurrentWindow();
     const res = await remote.dialog.showMessageBox(win, {
         type: 'warning',
-        buttons: ['Move to Trash', 'Cancel'],
+        buttons: [`Move to ${TRASH}`, 'Cancel'],
         defaultId: 0,
         cancelId: 1,
-        message: `Move “${file.name}” to the Trash?`,
-        detail: 'You can put it back from the Trash in Finder.',
+        message: `Move “${file.name}” to the ${TRASH}?`,
+        detail: `You can put it back from the ${TRASH}.`,
     });
     if (res.response !== 0) return;
     try {
         await shell.trashItem(file.path);
     } catch (err) {
-        remote.dialog.showMessageBox(win, { type: 'error', message: `Couldn’t move “${file.name}” to the Trash.`, detail: err.message });
+        remote.dialog.showMessageBox(win, { type: 'error', message: `Couldn’t move “${file.name}” to the ${TRASH}.`, detail: err.message });
         return;
     }
     state.files = state.files.filter((f) => f.path !== file.path);
     if (state.hidden.delete(file.path)) saveJSON(HIDDEN_KEY, [...state.hidden]);
     if (state.selected && state.selected.path === file.path) hidePreview();
     else render();
+}
+
+// Moving files between folders (drag and drop in the tree)
+
+function rootOf(p) {
+    return state.folders.filter((r) => isInside(p, r)).sort((a, b) => b.length - a.length)[0] || null;
+}
+
+// "bracket.stl" → "bracket 2.stl", keeping double extensions like .gcode.3mf together
+function freeName(dir, name) {
+    const m = name.match(/^(.*?)((?:\.gcode)?\.[^.]+)?$/i);
+    const stem = m[1] || name;
+    const ext = m[2] || '';
+    for (let n = 2; ; n++) {
+        const candidate = `${stem} ${n}${ext}`;
+        if (!fs.existsSync(path.join(dir, candidate))) return candidate;
+    }
+}
+
+async function movePath(from, to) {
+    try {
+        await fs.promises.rename(from, to);
+    } catch (err) {
+        if (err.code !== 'EXDEV') throw err;
+        // a different drive: copy, then remove the original
+        await fs.promises.copyFile(from, to, fs.constants.COPYFILE_EXCL);
+        await fs.promises.unlink(from);
+    }
+}
+
+let toastTimer = null;
+function toast(text, action) {
+    const t = $('models-toast');
+    t.innerHTML = `<span>${esc(text)}</span>${action ? `<button class="link-btn">${esc(action.label)}</button>` : ''}`;
+    if (action) t.querySelector('button').onclick = () => { hideToast(); action.run(); };
+    t.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, action ? 8000 : 3000);
+}
+
+function hideToast() {
+    $('models-toast').classList.add('hidden');
+}
+
+async function moveFile(file, dir, { undo = false } = {}) {
+    const win = remote.getCurrentWindow();
+    const folderName = path.basename(dir);
+    let name = file.name;
+    let dest = path.join(dir, name);
+    if (dest === file.path) return;
+
+    if (fs.existsSync(dest)) {
+        const res = await remote.dialog.showMessageBox(win, {
+            type: 'warning',
+            buttons: ['Keep Both', 'Replace', 'Cancel'],
+            defaultId: 0,
+            cancelId: 2,
+            message: `“${folderName}” already has a file named “${name}”.`,
+            detail: `Replace moves the existing file to the ${TRASH}.`,
+        });
+        if (res.response === 2) return;
+        if (res.response === 0) {
+            name = freeName(dir, name);
+            dest = path.join(dir, name);
+        } else {
+            try {
+                await shell.trashItem(dest);
+            } catch (err) {
+                remote.dialog.showMessageBox(win, { type: 'error', message: `Couldn’t replace “${name}”.`, detail: err.message });
+                return;
+            }
+        }
+    }
+
+    try {
+        await movePath(file.path, dest);
+    } catch (err) {
+        remote.dialog.showMessageBox(win, { type: 'error', message: `Couldn’t move “${file.name}”.`, detail: err.message });
+        return;
+    }
+
+    const from = file.path;
+    const moved = { ...file, path: dest, name, base: rootOf(dest) || file.base };
+    state.files = state.files.map((f) => (f.path === from ? moved : f));
+    if (state.hidden.delete(from)) {
+        state.hidden.add(dest);
+        saveJSON(HIDDEN_KEY, [...state.hidden]);
+    }
+    // open the folders down to the file so it can be seen where it landed
+    for (let d = dir; moved.base && isInside(d, moved.base); d = path.dirname(d)) {
+        state.expanded.add(d);
+        if (d === moved.base) break;
+    }
+    saveJSON(EXPANDED_KEY, [...state.expanded]);
+    if (state.cursor === 'f:' + from) state.cursor = 'f:' + dest;
+    if (state.selected && state.selected.path === from) {
+        state.selected = moved;
+        $('models-preview-name').textContent = name;
+    }
+    render();
+    refreshFiles();
+
+    if (undo) toast(`Moved “${name}” back.`);
+    else toast(`Moved “${name}” to ${folderName}.`, { label: 'Undo', run: () => moveFile(moved, path.dirname(from), { undo: true }) });
 }
 
 function showRowMenu(row) {
@@ -600,7 +707,7 @@ function showRowMenu(row) {
     } else {
         template.push(
             { label: row.open ? 'Collapse' : 'Expand', enabled: !row.forced, click: () => toggleExpanded(row.path) },
-            { label: process.platform === 'darwin' ? 'Open in Finder' : 'Open Folder', enabled: !row.missing, click: () => shell.openPath(row.path) },
+            { label: ON_MAC ? 'Open in Finder' : 'Open in Explorer', enabled: !row.missing, click: () => shell.openPath(row.path) },
             { type: 'separator' },
         );
     }
@@ -609,7 +716,7 @@ function showRowMenu(row) {
         enabled: directlyHidden || !hidden,
         click: () => setHidden(row.path, !directlyHidden),
     });
-    if (isFile) template.push({ label: 'Move to Trash…', click: () => trashFile(row.file) });
+    if (isFile) template.push({ label: `Move to ${TRASH}…`, click: () => trashFile(row.file) });
     if (row.root) template.push({ type: 'separator' }, { label: 'Remove Folder from Philament', click: () => removeFolder(row.path) });
     remote.Menu.buildFromTemplate(template).popup({ window: remote.getCurrentWindow() });
 }
@@ -701,6 +808,7 @@ function renderRow(row, i) {
     if (hidden) classes.push('is-hidden');
     if (state.cursor === key) classes.push('cursor');
     if (row.type === 'file' && state.selected && state.selected.path === row.path) classes.push('selected');
+    if (row.type === 'file' && state.dragging && state.dragging.path === row.path) classes.push('dragging');
 
     const hideBtn = directlyHidden
         ? actionButton('unhide', 'show', 'Unhide')
@@ -720,11 +828,11 @@ function renderRow(row, i) {
         </div>`;
     }
     const f = row.file;
-    return `<div class="${classes.join(' ')}" data-i="${i}" style="--depth:${row.depth}" title="${esc(prettyFolder(f.path))}\nDouble-click to open in ${f.kind === 'f3d' ? 'Fusion' : 'slicer'} · Right-click for more">
+    return `<div class="${classes.join(' ')}" data-i="${i}" draggable="true" style="--depth:${row.depth}" title="${esc(prettyFolder(f.path))}\nDouble-click to open in ${f.kind === 'f3d' ? 'Fusion' : 'slicer'} · Drag onto a folder to move · Right-click for more">
         <span class="model-badge model-badge-${f.kind}">${kindLabel(f.kind)}</span>
         <span class="model-name">${esc(f.name)}</span>
         <span class="model-meta" title="${formatSize(f.size)}">${formatDate(f.mtime)}</span>
-        <span class="row-actions">${hideBtn}${actionButton('trash', 'trash', 'Move to Trash')}</span>
+        <span class="row-actions">${hideBtn}${actionButton('trash', 'trash', `Move to ${TRASH}`)}</span>
     </div>`;
 }
 
@@ -865,12 +973,82 @@ function init() {
         }
     });
 
+    // Drag a file onto a folder (or onto another file in it) to move it there
+    let springTimer = null;
+    let springPath = null;
+    const clearTarget = () => list.querySelectorAll('.drop-target').forEach((el) => el.classList.remove('drop-target'));
+    const targetOf = (row) => {
+        if (!row || row.missing) return null;
+        return row.type === 'dir' ? row.path : path.dirname(row.path);
+    };
+    list.addEventListener('dragstart', (e) => {
+        const row = rowFromEvent(e);
+        if (!row || row.type !== 'file') return;
+        state.dragging = row.file;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('application/x-philament-file', row.path);
+        e.target.classList.add('dragging');
+        // Once the drag is under way, a mouse move means it ended, even if the row was redrawn
+        // (and so never gets its dragend)
+        const done = () => { document.removeEventListener('mousemove', done); endDrag(); };
+        document.addEventListener('dragover', () => document.addEventListener('mousemove', done), { once: true });
+    });
+    list.addEventListener('dragover', (e) => {
+        if (!state.dragging) return;
+        const row = rowFromEvent(e);
+        const dir = targetOf(row);
+        clearTarget();
+        if (!dir || dir === path.dirname(state.dragging.path)) {
+            e.dataTransfer.dropEffect = 'none';
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        const i = list._rows.findIndex((r) => r.type === 'dir' && r.path === dir);
+        const el = i >= 0 && list.querySelector(`.tree-row[data-i="${i}"]`);
+        if (el) el.classList.add('drop-target');
+        // hovering a closed folder opens it
+        const closed = row.type === 'dir' && !row.open && !row.forced ? row.path : null;
+        if (closed !== springPath) {
+            clearTimeout(springTimer);
+            springPath = closed;
+            if (closed) springTimer = setTimeout(() => { springPath = null; toggleExpanded(closed, true); }, 700);
+        }
+    });
+    list.addEventListener('dragleave', (e) => {
+        if (!list.contains(e.relatedTarget)) { clearTarget(); clearTimeout(springTimer); springPath = null; }
+    });
+    list.addEventListener('drop', (e) => {
+        if (!state.dragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const file = state.dragging;
+        const dir = targetOf(rowFromEvent(e));
+        endDrag();
+        if (dir && dir !== path.dirname(file.path)) moveFile(file, dir);
+    });
+    list.addEventListener('dragend', endDrag);
+    function endDrag() {
+        clearTimeout(springTimer);
+        springPath = null;
+        clearTarget();
+        section.classList.remove('drag-over');
+        if (!state.dragging) return;
+        state.dragging = null;
+        list.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
+    }
+
     // Drag a folder (or files) onto the section to add their folder
-    section.addEventListener('dragover', (e) => { e.preventDefault(); section.classList.add('drag-over'); });
+    section.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!state.dragging) section.classList.add('drag-over');
+    });
     section.addEventListener('dragleave', (e) => { if (!section.contains(e.relatedTarget)) section.classList.remove('drag-over'); });
     section.addEventListener('drop', (e) => {
         e.preventDefault();
         section.classList.remove('drag-over');
+        if (state.dragging) return endDrag();
         const paths = [];
         for (const f of e.dataTransfer.files) {
             // Electron 32+ no longer puts the path on dropped files; webUtils gives it instead

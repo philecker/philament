@@ -156,7 +156,15 @@ function buildMenu() {
                 { type: 'separator' },
                 { role: 'quit' },
             ],
-        }] : [{ label: 'File', submenu: [{ label: 'Check for Updates…', click: checkForUpdatesFromMenu }, { type: 'separator' }, { role: 'quit' }] }]),
+        }] : [{
+            label: 'File',
+            submenu: [
+                { label: 'Settings…', accelerator: 'Ctrl+,', click: () => sendToWindow('open-settings') },
+                { label: 'Check for Updates…', click: checkForUpdatesFromMenu },
+                { type: 'separator' },
+                { role: 'quit' },
+            ],
+        }]),
         { role: 'editMenu' }, // copy / paste / select all in text fields
         {
             label: 'View',

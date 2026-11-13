@@ -1,6 +1,6 @@
 // Update checks against GitHub Releases (main process).
-// The app isn't signed, so it can't replace itself: it downloads the right .dmg to
-// Downloads, opens it and quits.
+// The app isn't signed, so it can't replace itself: it downloads the right installer
+// (.dmg on a Mac, setup .exe on Windows) to Downloads, opens it and quits.
 
 const fs = require('fs');
 const path = require('path');
@@ -14,6 +14,8 @@ const REPO = publish.repo || 'philament';
 // Overridable for testing against a stand-in server
 const API_BASE = process.env.PHILAMENT_UPDATE_API || 'https://api.github.com';
 const TESTING = !!process.env.PHILAMENT_UPDATE_API;
+// Which installer to look for; tests can pretend to be another system
+const PLATFORM = (TESTING && process.env.PHILAMENT_UPDATE_PLATFORM) || process.platform;
 const TIMEOUT_MS = 15000;
 
 // Versions
@@ -39,13 +41,17 @@ function compareVersions(a, b) {
 
 // Release lookup
 
-// The .dmg built for this Mac, falling back to a universal one
-function pickAsset(assets, arch = process.arch) {
-    const dmgs = (assets || []).filter((a) => /\.dmg$/i.test(a.name || ''));
+const INSTALLER = { darwin: /\.dmg$/i, win32: /\.exe$/i };
+
+// The installer built for this computer, falling back to a universal one
+function pickAsset(assets, arch = process.arch, platform = PLATFORM) {
+    const kind = INSTALLER[platform];
+    if (!kind) return null;
+    const found = (assets || []).filter((a) => kind.test(a.name || ''));
     const mine = arch === 'arm64' ? /arm64|aarch64/i : /x64|x86_64|intel/i;
-    return dmgs.find((a) => mine.test(a.name))
-        || dmgs.find((a) => /universal/i.test(a.name))
-        || dmgs.find((a) => !/arm64|aarch64|x64|x86_64|intel/i.test(a.name))
+    return found.find((a) => mine.test(a.name))
+        || found.find((a) => /universal/i.test(a.name))
+        || found.find((a) => !/arm64|aarch64|x64|x86_64|intel/i.test(a.name))
         || null;
 }
 
@@ -103,7 +109,7 @@ function safeName(name) {
 }
 
 async function downloadUpdate(sender) {
-    if (!latest || !latest.asset) throw new Error('There’s no Mac download in this release. Open the release page instead.');
+    if (!latest || !latest.asset) throw new Error(`There’s no ${PLATFORM === 'darwin' ? 'Mac' : 'Windows'} download in this release. Open the release page instead.`);
     if (download) throw new Error('The update is already downloading.');
     const { url, size, name } = latest.asset;
     const host = new URL(url).hostname;
@@ -160,7 +166,7 @@ function registerIpc() {
     // Open the downloaded installer, then quit so the app can be replaced
     ipcMain.handle('update-install', async (event, file) => {
         const dir = app.getPath('downloads');
-        if (!file || path.dirname(file) !== dir || !/\.dmg$/i.test(file) || !fs.existsSync(file)) {
+        if (!file || path.dirname(file) !== dir || !(INSTALLER[PLATFORM] || /$^/).test(file) || !fs.existsSync(file)) {
             throw new Error('The downloaded installer is missing. Please download it again.');
         }
         const err = await shell.openPath(file);

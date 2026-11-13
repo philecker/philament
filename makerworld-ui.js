@@ -520,7 +520,7 @@
         const acc = state.account;
         $('mw-settings-label').textContent = acc ? `Connected as @${acc.handle}` : 'Not connected';
         $('mw-settings-sub').textContent = acc
-            ? 'Public profile, no sign-in. Disconnecting removes the saved history from this Mac.'
+            ? `Public profile, no sign-in. Disconnecting removes the saved history from this ${process.platform === 'darwin' ? 'Mac' : 'computer'}.`
             : 'Show your MakerWorld uploads and their stats in the Uploads tab';
         $('mw-settings-btn').textContent = acc ? 'Disconnect' : 'Connect';
     }
@@ -568,7 +568,7 @@
     }
 
     async function disconnect() {
-        if (!confirm(`Disconnect @${state.account.handle}? The history Philament saved on this Mac will be removed.`)) return;
+        if (!confirm(`Disconnect @${state.account.handle}? The history Philament saved on this ${process.platform === 'darwin' ? 'Mac' : 'computer'} will be removed.`)) return;
         await ipcRenderer.invoke('mw-forget').catch(() => {});
         for (const k of Object.values(KEYS)) { try { localStorage.removeItem(k); } catch {} }
         Object.assign(state, { account: null, data: null, seen: {}, selected: null, error: '', filter: 'all', sort: 'downloads' });

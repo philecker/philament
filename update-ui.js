@@ -124,7 +124,9 @@
         show({
             kind: 'ready',
             title: `Philament ${state.release.version} is ready to install`,
-            detail: 'Philament will quit and open the installer. Drag Philament into Applications and choose Replace, then open it again.',
+            detail: process.platform === 'darwin'
+                ? 'Philament will quit and open the installer. Drag Philament into Applications and choose Replace, then open it again.'
+                : 'Philament will quit and run the installer, then open again when it’s done.',
             actions: [
                 button('Later', hide),
                 button('Install & Quit', install, 'primary'),

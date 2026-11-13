@@ -85,6 +85,7 @@
         <div class="workspace">
             <!-- Library -->
             <section class="pane library-pane" id="models-section">
+                <div class="saved-toast models-toast hidden" id="models-toast" role="status"></div>
                 <div class="section-header pane-header">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -342,7 +343,7 @@
                     <div class="saved-empty hidden" id="saved-empty">
                         <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                         <div class="saved-empty-title">Save models from any 3D printing site</div>
-                        <div class="saved-empty-desc">Paste a link above, drag one in from your browser, or press ⌘V here.<br>MakerWorld, Printables, Thingiverse, Cults, Thangs, MyMiniFactory and more all work.</div>
+                        <div class="saved-empty-desc">Paste a link above, drag one in from your browser, or press <span data-shortcut="V">⌘V</span> here.<br>MakerWorld, Printables, Thingiverse, Cults, Thangs, MyMiniFactory and more all work.</div>
                     </div>
                 </div>
                 <div class="saved-toast hidden" id="saved-toast" role="status"></div>
@@ -495,7 +496,7 @@
 
                 <div class="settings-section">
                     <h4 class="settings-section-title">Backup & Restore</h4>
-                    <p class="settings-description">Save your filaments, inventory, model folders and settings to iCloud Drive, or restore them.</p>
+                    <p class="settings-description">Save your filaments, inventory, model folders and settings to a backup file (iCloud Drive on a Mac), or restore them.</p>
                     <div class="settings-actions">
                         <button onclick="exportBackup()" class="settings-action-btn">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

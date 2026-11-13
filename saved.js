@@ -673,7 +673,8 @@
         // Drag a link from the browser anywhere onto the window
         let dragDepth = 0;
         document.addEventListener('dragenter', (e) => {
-            if (![...e.dataTransfer.types].includes('Files') && [...e.dataTransfer.types].some((t) => t === 'text/uri-list' || t === 'text/plain')) {
+            const types = [...e.dataTransfer.types];
+            if (!types.includes('Files') && !types.includes('application/x-philament-file') && types.some((t) => t === 'text/uri-list' || t === 'text/plain')) {
                 dragDepth++;
                 setView('saved');
                 $('saved-drop').classList.remove('hidden');

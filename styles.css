@@ -361,6 +361,21 @@ input.models-search {
 
 .library-pane {
     grid-area: library;
+    position: relative;
+}
+
+.models-toast {
+    width: max-content;
+}
+
+.library-pane .tree-row.dragging {
+    opacity: 0.45;
+}
+
+.library-pane .tree-row.drop-target {
+    background: rgba(var(--accent-rgb), 0.16);
+    box-shadow: inset 0 0 0 2px var(--accent);
+    border-radius: 6px;
 }
 
 .tools-pane {
@@ -588,6 +603,15 @@ input.models-search {
     display: flex;
     gap: 8px;
     -webkit-app-region: no-drag;
+}
+
+/* Windows: app name on the left, window buttons on the right, where the system puts them */
+.platform-other .header-right {
+    order: 1;
+}
+
+.platform-other .window-controls {
+    order: 2;
 }
 
 .window-btn {

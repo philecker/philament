@@ -10,6 +10,10 @@ const os = require('os');
 const path = require('path');
 
 const APP_VERSION = remote.app.getVersion();
+const IS_MAC = process.platform === 'darwin';
+// Keyboard shortcut text: "⌘1" on a Mac, "Ctrl+1" elsewhere
+const shortcut = (key) => (IS_MAC ? '⌘' : 'Ctrl+') + key;
+document.documentElement.classList.add(IS_MAC ? 'platform-mac' : 'platform-other');
 
 const STORAGE = {
     filaments: 'philament_filaments',
@@ -937,8 +941,14 @@ function initCollapsibleSections() {
 
 // Window
 
-// Double-clicking the title bar maximizes or restores, like a normal Mac window
+// Double-clicking the title bar maximizes or restores, like a normal window
 function initTitleBar() {
+    // Shortcut text in the page is written for the Mac
+    if (!IS_MAC) document.querySelectorAll('[data-shortcut]').forEach((el) => { el.textContent = shortcut(el.dataset.shortcut); });
+    // Ctrl+, opens Settings (the menu bar that has it is hidden in this window on Windows)
+    if (!IS_MAC) document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key === ',') { e.preventDefault(); openSettingsModal(); }
+    });
     document.querySelector('.header').addEventListener('dblclick', (e) => {
         if (!e.target.closest('button, .logo')) maximizeWindow();
     });
@@ -978,9 +988,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('dragover', (e) => e.preventDefault());
     window.addEventListener('drop', (e) => e.preventDefault());
 
-    // Nothing inside the window can be dragged (pictures, links, selected text),
-    // so a stray drag never ends up as a link dropped on the Saved tab
-    document.addEventListener('dragstart', (e) => e.preventDefault());
+    // Only Library files can be dragged (to move them). Pictures, links and selected text
+    // can't, so a stray drag never ends up as a link dropped on the Saved tab
+    document.addEventListener('dragstart', (e) => {
+        if (!(e.target.closest && e.target.closest('[draggable="true"]'))) e.preventDefault();
+    });
 
 });
 

@@ -5,10 +5,11 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --mac --publish never",
+    "build": "electron-builder --publish never",
     "build:mac": "electron-builder --mac --publish never",
     "build:mac:tahoe": "electron-builder --mac --publish never -c.mac.icon=assets/Philament.icon -c.dmg.icon=assets/icon.icns",
-    "release": "electron-builder --mac --publish always"
+    "build:win": "electron-builder --win --publish never",
+    "release": "electron-builder --mac --win --publish always"
   },
   "keywords": [
     "3d-printing",
@@ -17,7 +18,8 @@
     "filament",
     "converter",
     "utility",
-    "macos"
+    "macos",
+    "windows"
   ],
   "author": {
     "name": "Phil Ecker"
@@ -76,6 +78,29 @@
       "artifactName": "Philament-${version}-${arch}-mac.${ext}",
       "minimumSystemVersion": "13.0"
     },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "artifactName": "Philament-${version}-${arch}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "Philament",
+      "deleteAppDataOnUninstall": false,
+      "buildUniversalInstaller": false
+    },
+    "dmg": {
+      "artifactName": "Philament-${version}-${arch}.${ext}"
+    },
     "publish": [
       {
         "provider": "github",
@@ -84,9 +109,6 @@
         "releaseType": "release"
       }
     ],
-    "dmg": {
-      "artifactName": "Philament-${version}-${arch}.${ext}"
-    },
     "copyright": "Copyright © 2026 Phil Ecker"
   },
   "dependencies": {

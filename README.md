@@ -1,8 +1,20 @@
 # Philament
 
-A small macOS companion app for Bambu Lab printing: a model library with 3D preview, a filament guide with inventory, and a unit converter.
+A companion app for 3D printing on macOS and Windows: a model library with 3D preview, saved models from any site, your MakerWorld uploads, a filament guide with inventory, and a unit converter.
 
 Version 0.1.0
+
+## Screenshots
+
+![The Library: model folders, a 3D preview, the unit converter and the filament guide](docs/screenshots/library.png)
+
+| Uploads | Saved |
+| --- | --- |
+| ![Uploads: MakerWorld profile, uploads with stats and trends](docs/screenshots/uploads.png) | ![Saved: models saved from different sites](docs/screenshots/saved.png) |
+
+| Dark mode | Settings |
+| --- | --- |
+| ![The Library in dark mode](docs/screenshots/library-dark.png) | ![Settings](docs/screenshots/settings.png) |
 
 ## Features
 
@@ -14,7 +26,8 @@ Version 0.1.0
 - Open any file in your slicer with one click, a double-click, or Enter. Bambu Studio, OrcaSlicer, PrusaSlicer, Cura and others are found automatically; change it from the slicer chip or Settings.
 - Files keep their folder structure: each added folder is a tree you can open and close, and Philament remembers which folders are open. Searching opens the folders that contain matches.
 - Hide files or whole folders you don't want to see (the eye button, or right-click → Hide from Philament). Hidden items stay on disk; the "N hidden" button shows them again so you can unhide them.
-- Delete a file with the trash button, right-click → Move to Trash, or ⌘⌫. It goes to the macOS Trash, so you can put it back.
+- Drag a file onto a folder (or onto any file in it) to move it there. Hover over a closed folder to open it while dragging. If a file with that name is already there, choose Keep Both or Replace (the old one goes to the Trash). **Undo** puts it back.
+- Delete a file with the trash button, right-click → Move to Trash, or ⌘⌫ (Ctrl+Delete on Windows). It goes to the Trash (the Recycle Bin on Windows), so you can put it back.
 - The list rescans when you switch back to the app, so new slices show up.
 
 ### Uploads (MakerWorld)
@@ -23,7 +36,7 @@ Version 0.1.0
 - Every upload with its downloads, prints, likes and comments, a 14-day trend line, and the change this week. Each column heading shows the total of what's listed, e.g. Downloads (8,549). Sort by most downloaded, printed, liked, trending this week, newest or title; search; filter to models with new comments or boosts.
 - Click a model for a bigger picture, its numbers, downloads per day for the last 30 days, and its latest comments, with an **Edit on MakerWorld** button. Double-click a model (or press Enter) to open it on MakerWorld.
 - New comments since you last looked show on the model and on the tab.
-- MakerWorld keeps no public history, so Philament saves your numbers once a day on your Mac (checking every few hours while it's open). Trends fill in as days go by. Disconnecting in **Settings → MakerWorld** removes that history.
+- MakerWorld keeps no public history, so Philament saves your numbers once a day on your computer (checking every few hours while it's open). Trends fill in as days go by. Disconnecting in **Settings → MakerWorld** removes that history.
 - MakerWorld has no official API. This reads the same public information anyone can see on your profile, using the endpoints MakerWorld's own pages use, so it could stop working if MakerWorld changes them. Editing always happens on makerworld.com.
 
 ### Saved models
@@ -35,7 +48,7 @@ Version 0.1.0
 - Right-click a card (or use the ··· button) to add a tag, rename, choose your own picture, refresh from the site, or remove (with Undo).
 - Printables models are read through Printables' own public API, so its bot protection doesn't get in the way.
 - Other sites with bot protection turn away quick automated requests. When that happens Philament opens the page in a hidden, locked-down browser window (no access to your files, no popups, downloads or sound), lets it load like a normal visit, and reads the details from there. This takes a few extra seconds. If the site asks you to confirm you're human, that window appears so you can answer it once; the site remembers it for later saves.
-- If a site still can't be read, the card still saves with a title taken from the link, and you can try again later. Pictures are kept on your Mac, so cards load instantly and work offline.
+- If a site still can't be read, the card still saves with a title taken from the link, and you can try again later. Pictures are kept on your computer, so cards load instantly and work offline.
 
 ### Filament
 - Nozzle, bed and drying temperature/time for PLA, PETG, ABS, TPU, PA-CF, ASA, PLA-CF and PETG-CF.
@@ -52,24 +65,27 @@ Version 0.1.0
 
 ### Updates
 - Philament checks GitHub for a newer release when it opens and every 6 hours after that. When there is one, a banner appears at the top with **What's New** (the release notes), **Later** and **Download Update**.
-- **Download Update** downloads the right installer for your Mac (Apple silicon or Intel) into your Downloads folder, with progress and Cancel. **Install & Quit** then opens the installer and quits Philament: drag Philament into Applications, choose **Replace**, and open it again.
+- **Download Update** downloads the right installer for your computer (Mac: Apple silicon or Intel; Windows: x64 or ARM) into your Downloads folder, with progress and Cancel. **Install & Quit** then opens the installer and quits Philament.
+  - On a Mac, drag Philament into Applications, choose **Replace**, and open it again.
+  - On Windows, the installer updates Philament and opens it again by itself.
 - **Skip this version** stops the banner for that release; **Later** hides it until next launch.
-- **Philament → Check for Updates…** or **Settings → Updates → Check Now** checks right away. Automatic checks can be turned off in Settings.
+- **Philament → Check for Updates…** (Mac) or **Settings → Updates → Check Now** checks right away. Automatic checks can be turned off in Settings.
 
 ### General
 - Full-window layout: your model library on the left, a large 3D preview in the middle, and the Unit Converter and Filament on the right. Each area scrolls on its own, so nothing is ever cut off at the bottom of the screen.
 - Opens large on first launch and remembers its size, position and whether it was maximized or full screen. Double-click the title bar to maximize; View → Enter Full Screen for full screen.
 - Below 1200px wide the preview and tools share one scrolling column next to the library; below 860px everything stacks in a single column.
 - The Unit Converter and Filament sections collapse with a click on their header.
-- Follows the macOS light/dark appearance.
+- Follows your system's light/dark appearance.
 - App color: Emerald (default), Ocean, Violet, Rose, Sunset or Graphite, under Settings → Appearance. In light mode the 3D model uses it too; in dark mode the model is a neutral grey on a brighter grid.
 - Color Brightness slider (50–100%) to tone the app color down; it applies everywhere the color is used.
 - Font size setting (100–150%).
-- Backup and restore to iCloud Drive: filaments, inventory, model folders, hidden items, saved links and their tags, your own filament types, slicer, app color and brightness, and font size.
+- Backup and restore (to iCloud Drive on a Mac, Documents on Windows): filaments, inventory, model folders, hidden items, saved links and their tags, your own filament types, slicer, app color and brightness, and font size.
 
 ## Requirements
 
-- macOS 13 (Ventura) or later
+- macOS 13 (Ventura) or later, Apple silicon or Intel
+- Windows 10 or 11, x64 or ARM
 - Node.js 22.12 or later (only to run from source or build). Check with `node --version`.
 
 ## Run from source
@@ -88,6 +104,18 @@ npm run build:mac
 
 The `.dmg` and `.zip` are written to `dist/`. The build is not code-signed or notarized, so the first time you open it, right-click the app and choose **Open**. To distribute it to other people without that step you need an Apple Developer ID to sign and notarize it.
 
+## Build for Windows
+
+```bash
+npm run build:win
+```
+
+This makes two installers in `dist/`: `Philament-0.1.0-x64-setup.exe` for most PCs and `Philament-0.1.0-arm64-setup.exe` for Windows on ARM. It works from a Mac or a Windows PC. On Linux, electron-builder also needs Wine.
+
+The installer puts Philament in your user folder (no administrator needed) and adds Start menu and desktop shortcuts. It isn't code-signed, so Windows SmartScreen may say "Windows protected your PC" the first time: choose **More info → Run anyway**. Signing it needs a Windows code-signing certificate.
+
+On Windows the window buttons sit on the right, Ctrl takes the place of ⌘ in shortcuts, and the Settings shortcut is Ctrl+,.
+
 ### Publishing a new version
 
 The update check looks at the latest release of **github.com/philecker/philament** (set under `build.publish` in `package.json`). The repository needs to be public.
@@ -99,7 +127,7 @@ The update check looks at the latest release of **github.com/philecker/philament
    GH_TOKEN=your_token npm run release
    ```
 
-   This builds Apple silicon and Intel installers (`Philament-0.2.0-arm64.dmg`, `Philament-0.2.0-x64.dmg`, plus zips) and uploads them to a new GitHub release called `v0.2.0`.
+   This builds the Mac installers (`Philament-0.2.0-arm64-mac.dmg`, `Philament-0.2.0-x64-mac.dmg`, plus zips) and the Windows installers (`Philament-0.2.0-x64-setup.exe`, `Philament-0.2.0-arm64-setup.exe`), and uploads them all to a new GitHub release called `v0.2.0`. Each copy of Philament picks the right one when it updates.
 3. On GitHub, open the release, write the release notes (they appear under **What's New** in the app), and publish it if it was saved as a draft.
 
 Everyone running an older version sees the banner within 6 hours, or right away when they open Philament.
@@ -118,6 +146,8 @@ This needs Xcode 26 or later installed (electron-builder uses Apple's `actool` t
 
 ## Keyboard shortcuts
 
+On Windows, use Ctrl wherever these say ⌘.
+
 | Shortcut | Action |
 | --- | --- |
 | ⌘1 / ⌘2 / ⌘3 | Library / Uploads / Saved |
@@ -135,7 +165,7 @@ This needs Xcode 26 or later installed (electron-builder uses Apple's `actool` t
 
 ## Data
 
-Everything is stored locally on your Mac in the app's own storage. Backups are plain JSON files.
+Everything is stored locally on your computer in the app's own storage. Backups are plain JSON files.
 
 Philament only goes online to check GitHub for updates, to read the pages you save in the Saved tab, and, if you connect it, to read your public MakerWorld profile (from makerworld.com and api.bambulab.com). Nothing about you is sent anywhere else.
 
